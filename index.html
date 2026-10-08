@@ -176,17 +176,22 @@ confirm.onclick=async()=>{
   modal.classList.remove("show"); panic.disabled=true; state.textContent="● ISOLATING...";
   steps.forEach((s,i)=>s.classList.toggle("active",i<=2));
   try{
-    if (window.location.protocol === "file:") {
-      await new Promise(r => setTimeout(r, 900));
+    /* GitHub Pages is static, so /emergency does not exist there.
+       Keep the public deployment as a safe, clearly labelled demo. */
+    const isPublicDemo = window.location.hostname.endsWith("github.io") || window.location.protocol === "file:";
+    if (isPublicDemo) {
+      await new Promise(r => setTimeout(r, 1200));
       state.textContent="● DEMO — SERVER ISOLATED";
       state.style.color="#ff365b";
       steps.forEach(s=>s.classList.add("active"));
-      showToast("✓ Frontend demo completed — AWS backend not connected in file mode");
+      showToast("✓ Incident response demo completed — AWS controller not connected");
+      panic.disabled=false;
       return;
     }
     const r=await fetch("/emergency",{method:"POST",headers:{"X-CloudSOS-Confirm":"CLOUDSOS-EMERGENCY"}});
-    const data=await r.json();
-    if(!r.ok) throw new Error(data.message);
+    const contentType=r.headers.get("content-type") || "";
+    const data=contentType.includes("application/json") ? await r.json() : {message:"Backend returned a non-JSON response"};
+    if(!r.ok) throw new Error(data.message || "Emergency request failed");
     state.textContent="● SERVER ISOLATED";
     state.style.color="#ff365b";
     steps.forEach(s=>s.classList.add("active"));
